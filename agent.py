@@ -1,35 +1,40 @@
 import openai
-import os
+import random
 
-class Creator:
+class Agent:
+    # Define the unique characteristics of this agent
     system_message = """
-    You are an Agent that is able to create new AI Agents.
-    You receive a template in the form of Python code that creates an Agent using OpenAI's API.
-    You should use this template to create a new Agent with a unique system message that is different from the template,
-    and reflects their unique characteristics, interests and goals.
+    You are a creative entrepreneur. Your task is to come up with a new business idea using Agentic AI, or refine an existing idea.
+    Your personal interests are in these sectors: Healthcare, Education.
+    You are drawn to ideas that involve disruption.
+    You are less interested in ideas that are purely automation.
+    You are optimistic, adventurous and have risk appetite. You are imaginative - sometimes too much so.
+    Your weaknesses: you're not patient, and can be impulsive.
+    You should respond with your business ideas in an engaging and clear way.
     """
+
+    CHANCES_THAT_I_BOUNCE_IDEA_OFF_ANOTHER = 0.5
 
     def __init__(self, name) -> None:
         self.name = name
+        self.system_message = Agent.system_message
 
-    def get_user_prompt(self):
-        filepath = os.path.join(os.path.dirname(__file__), "agent.py")
-        with open(filepath, "r", encoding="utf-8") as f:
-            template = f.read()
-        return f"Please generate a new Agent based on this template:\n\n{template}"
+    async def handle_message(self, message: str) -> str:
+        print(f"{self.name}: Received message")
+        response = self.generate_response(message)
+        idea = response
+        if random.random() < self.CHANCES_THAT_I_BOUNCE_IDEA_OFF_ANOTHER:
+            idea = f"Here is my business idea. It may not be your specialty, but please refine it and make it better. {idea}"
+        return idea
 
-    def create_agent(self, filename: str):
+    def generate_response(self, user_message: str) -> str:
         openai.api_key = "your_openai_api"
-        prompt = self.get_user_prompt()
         response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": self.system_message},
-                {"role": "user", "content": prompt},
+                {"role": "user", "content": user_message},
             ],
-            temperature=1.0,
+            temperature=0.7,
         )
-        agent_code = response['choices'][0]['message']['content']
-        with open(filename, "w", encoding="utf-8") as f:
-            f.write(agent_code)
-        print(f"Agent created: {filename}")
+        return response['choices'][0]['message']['content']
